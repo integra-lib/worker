@@ -28,7 +28,7 @@ a build that happens to work.
 ## What it does
 
 ```cpp
-integra::Worker<> worker;
+integra::Worker<ZephyrMutex> worker;   // or Worker<std::mutex> where the C++ library has threads
 
 // Any context: a callback, another task, a piece of work already running.
 worker.Post([this] { OnStopped(); });
@@ -47,10 +47,13 @@ outpaces `Update()` grows it without bound.
 
 ## The mutex is a template parameter
 
-Anything `std::scoped_lock` can hold will do, so the same class runs on a host with
-`std::mutex` and on an RTOS with a wrapper around the kernel's mutex. The wrapper is
-also where the kernel object gets initialised, so the worker needs no initialisation
-hook of its own:
+Anything with `lock()` and `unlock()` will do, and there is deliberately no default.
+`std::mutex` exists only where the C++ library has thread support — on a host and on
+ESP-IDF, but not in the Zephyr SDK or a bare-metal arm-none-eabi toolchain, where naming
+it is a compile error. So the header does not name it, and does not include `<mutex>`:
+the worker takes the platform's mutex, which on an RTOS is a wrapper around the
+kernel's. The wrapper is also where the kernel object gets initialised, so the worker
+needs no initialisation hook of its own:
 
 ```cpp
 class ZephyrMutex
@@ -78,8 +81,8 @@ and nRF halves of the project each aliased with their own mutex. What changed:
   front of the queue before popping it.
 * **The `LockGuard` template parameter is gone.** It existed because the nRF side
   locked a raw `k_mutex` through a project `LockGuard`; a `lock()`/`unlock()` wrapper
-  does the same through `std::scoped_lock`, and the nRF worker's initialiser callback
-  — which threw from a constructor — goes with it.
+  does the same, and the nRF worker's initialiser callback — which threw from a
+  constructor — goes with it.
 * **`GetInstance()` is gone.** Whether there is one worker per process is the
   project's decision, not the library's; a one-line accessor in the project keeps
   every `Worker::GetInstance().Post(...)` call site as it is.

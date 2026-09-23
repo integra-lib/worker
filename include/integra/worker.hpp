@@ -2,21 +2,54 @@
 
 #include <concepts>
 #include <functional>
-#include <mutex>
 #include <queue>
 #include <utility>
 
 namespace integra
 {
 
-/// Anything std::scoped_lock can hold. On a host that is std::mutex; on an RTOS it
-/// is a ten-line wrapper around the kernel's mutex — which is also where the kernel
-/// object gets initialised, so the worker needs no initialisation hook of its own.
+/// Anything with lock() and unlock(). On a host or on ESP-IDF that can be std::mutex;
+/// on an RTOS it is a ten-line wrapper around the kernel's mutex — which is also where
+/// the kernel object gets initialised, so the worker needs no initialisation hook of
+/// its own.
 template<typename Mutex>
 concept BasicLockable = requires(Mutex& mutex) {
     mutex.lock();
     mutex.unlock();
 };
+
+namespace detail
+{
+
+/// Locks for the lifetime of the object. Here rather than std::scoped_lock because
+/// <mutex> is not usable on every toolchain this has to build with: without thread
+/// support in the C++ library — the Zephyr SDK and bare-metal arm-none-eabi — the
+/// header's std::mutex does not exist, and naming it anywhere fails the build.
+template<BasicLockable Mutex>
+class WorkerLock
+{
+public:
+    explicit WorkerLock(Mutex& mutex)
+        : m_mutex{mutex}
+    {
+        m_mutex.lock();
+    }
+
+    WorkerLock(const WorkerLock&)            = delete;
+    WorkerLock& operator=(const WorkerLock&) = delete;
+    WorkerLock(WorkerLock&&)                 = delete;
+    WorkerLock& operator=(WorkerLock&&)      = delete;
+
+    ~WorkerLock()
+    {
+        m_mutex.unlock();
+    }
+
+private:
+    Mutex& m_mutex;
+};
+
+} // namespace detail
 
 /// A queue of deferred work: any context posts a callable, and the one context that
 /// owns the worker runs everything posted so far when it calls `Update()`.
@@ -27,7 +60,11 @@ concept BasicLockable = requires(Mutex& mutex) {
 ///
 /// The queue grows on the heap, one `std::function` per posted item. A producer that
 /// outpaces `Update()` grows it without bound.
-template<BasicLockable Mutex = std::mutex>
+///
+/// There is no default mutex: the one that fits is the platform's, and a default of
+/// std::mutex made the header fail to compile wherever std::mutex does not exist —
+/// even for a worker given a mutex of its own.
+template<BasicLockable Mutex>
 class Worker
 {
 public:
@@ -49,7 +86,7 @@ public:
         {
             return;
         }
-        const std::scoped_lock lock{m_mutex};
+        const detail::WorkerLock lock{m_mutex};
         m_works.push(std::move(work));
     }
 
@@ -61,7 +98,7 @@ public:
         {
             Work work;
             {
-                const std::scoped_lock lock{m_mutex};
+                const detail::WorkerLock lock{m_mutex};
                 if (m_works.empty())
                 {
                     return;

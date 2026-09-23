@@ -2,6 +2,7 @@
 
 #include <integra/worker.hpp>
 #include <memory>
+#include <mutex>
 #include <stdexcept>
 #include <string>
 #include <utility>
@@ -45,7 +46,7 @@ private:
 
 TEST(WorkerTest, RunsNothingUntilUpdated)
 {
-    Worker<> worker;
+    Worker<std::mutex> worker;
     bool ran = false;
     worker.Post([&ran] { ran = true; });
 
@@ -56,7 +57,7 @@ TEST(WorkerTest, RunsNothingUntilUpdated)
 
 TEST(WorkerTest, RunsWorkInTheOrderItWasPosted)
 {
-    Worker<> worker;
+    Worker<std::mutex> worker;
     std::vector<int> order;
     for (int i = 0; i < 5; ++i)
     {
@@ -69,7 +70,7 @@ TEST(WorkerTest, RunsWorkInTheOrderItWasPosted)
 
 TEST(WorkerTest, RunsEachPieceOfWorkOnce)
 {
-    Worker<> worker;
+    Worker<std::mutex> worker;
     int runs = 0;
     worker.Post([&runs] { ++runs; });
 
@@ -125,10 +126,10 @@ TEST(WorkerTest, MovesTheWorkInsteadOfCopyingIt)
         ~CopyCounter()                                 = default;
     };
 
-    Worker<> worker;
+    Worker<std::mutex> worker;
     CopyCounter counter;
     const auto copies = counter.copies;
-    Worker<>::Work work{[captured = std::move(counter)] { (void)captured; }};
+    Worker<std::mutex>::Work work{[captured = std::move(counter)] { (void)captured; }};
     const int copiesBeforePost = *copies;
 
     worker.Post(std::move(work));
