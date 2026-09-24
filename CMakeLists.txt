@@ -1,22 +1,21 @@
 cmake_minimum_required(VERSION 3.21)
 
 project(
-  integra_worker
-  VERSION 0.1.0
+  hwlib_worker
+  VERSION 0.2.0
   LANGUAGES CXX)
 
-add_library(integra_worker INTERFACE)
-add_library(Integra::worker ALIAS integra_worker)
+add_library(hwlib_worker INTERFACE)
+add_library(Hwlib::worker ALIAS hwlib_worker)
 
-target_include_directories(integra_worker
+target_include_directories(hwlib_worker
                            INTERFACE ${CMAKE_CURRENT_SOURCE_DIR}/include)
-target_compile_features(integra_worker INTERFACE cxx_std_20)
+target_compile_features(hwlib_worker INTERFACE cxx_std_20)
 
 # Dependants read the version from this property rather than from a variable: a
 # variable set here is invisible in a sibling directory, and a stale one left in
 # the parent scope would be read instead — a version check that silently passes.
-set_target_properties(integra_worker PROPERTIES INTEGRA_VERSION
-                                                ${PROJECT_VERSION})
+set_target_properties(hwlib_worker PROPERTIES HWLIB_VERSION ${PROJECT_VERSION})
 
 if(PROJECT_IS_TOP_LEVEL)
   include(FetchContent)
@@ -30,6 +29,6 @@ if(PROJECT_IS_TOP_LEVEL)
   enable_testing()
 
   add_executable(worker-test tests/worker_test.cpp)
-  target_link_libraries(worker-test PRIVATE Integra::worker GTest::gtest_main)
+  target_link_libraries(worker-test PRIVATE Hwlib::worker GTest::gtest_main)
   gtest_discover_tests(worker-test)
 endif()

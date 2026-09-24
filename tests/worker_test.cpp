@@ -1,6 +1,6 @@
 #include <gtest/gtest.h>
 
-#include <integra/worker.hpp>
+#include <hwlib/execution/worker.hpp>
 #include <memory>
 #include <mutex>
 #include <stdexcept>
@@ -11,7 +11,7 @@
 namespace
 {
 
-using integra::Worker;
+using hwlib::execution::Worker;
 
 // A mutex that refuses to be taken twice. Were the worker to hold its lock while a
 // piece of work runs, work that posts more work would take it a second time — a

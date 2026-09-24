@@ -5,7 +5,7 @@
 #include <queue>
 #include <utility>
 
-namespace integra
+namespace hwlib::execution
 {
 
 /// Anything with lock() and unlock(). On a host or on ESP-IDF that can be std::mutex;
@@ -115,4 +115,4 @@ private:
     std::queue<Work> m_works;
 };
 
-} // namespace integra
+} // namespace hwlib::execution

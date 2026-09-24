@@ -2,23 +2,23 @@
 
 A queue of deferred work: post from anywhere, run it all on the context that owns the worker.
 
-Part of [integra-lib](https://github.com/integra-lib) — architecture-independent C++20
+Part of [hwlib](https://github.com/integra-lib) — architecture-independent C++20
 components shared between firmware projects. Header-only,
 no exceptions, no RTTI.
 
 ## Use it
 
 ```bash
-git submodule add git@github.com:integra-lib/worker.git external/integra/worker
+git submodule add git@github.com:integra-lib/worker.git external/hwlib/worker
 ```
 
 ```cmake
-add_subdirectory(external/integra/worker)
-target_link_libraries(app PRIVATE Integra::worker)
+add_subdirectory(external/hwlib/worker)
+target_link_libraries(app PRIVATE Hwlib::worker)
 ```
 
 ```cpp
-#include <integra/worker.hpp>
+#include <hwlib/execution/worker.hpp>
 ```
 
 Each component carries its own include directory, so this header stays unreachable
@@ -28,7 +28,7 @@ a build that happens to work.
 ## What it does
 
 ```cpp
-integra::Worker<ZephyrMutex> worker;   // or Worker<std::mutex> where the C++ library has threads
+hwlib::execution::Worker<ZephyrMutex> worker;   // or Worker<std::mutex> where the C++ library has threads
 
 // Any context: a callback, another task, a piece of work already running.
 worker.Post([this] { OnStopped(); });
@@ -67,7 +67,7 @@ private:
     k_mutex m_mutex{};
 };
 
-integra::Worker<ZephyrMutex> worker;
+hwlib::execution::Worker<ZephyrMutex> worker;
 ```
 
 ## Coming from a138-ble-gateway's worker
@@ -95,9 +95,9 @@ Every component is released on its own, tagged `vX.Y.Z`. Pre-1.0, a minor releas
 break the API, which is why dependants accept a single minor.
 
 ```bash
-git -C external/integra/worker fetch --tags
-git -C external/integra/worker checkout v0.2.0
-git add external/integra/worker && git commit -m "build: bump worker to v0.2.0"
+git -C external/hwlib/worker fetch --tags
+git -C external/hwlib/worker checkout v0.2.0
+git add external/hwlib/worker && git commit -m "build: bump worker to v0.2.0"
 ```
 
 ## In a consumer's CI
